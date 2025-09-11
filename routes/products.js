@@ -56,19 +56,25 @@ router.get('/:productId', async (req, res) => {
  * GET /api/products?lotId=...&productId=...
  * Returns multiple products filtered by lotId or productId
  */
+/**
+ * GET /api/products
+ * Filters: lotId, productId, status, manufacturerId
+ * If no filters provided, returns ALL products
+ */
 router.get('/', async (req, res) => {
   try {
-    const { lotId, productId } = req.query;
+    const { lotId, productId, status, manufacturerId } = req.query;
 
     let filter = {};
     if (lotId) filter.lotId = lotId;
     if (productId) filter.productId = productId;
+    if (status) filter.currentStatus = status;   // ✅ filter by status
+    if (manufacturerId) filter.manufacturerId = manufacturerId; // ✅ filter by manufacturer
 
-    // ✅ If no filter is given, fetch everything
     const products = await Product.find(filter).lean();
 
     if (!products || products.length === 0) {
-      return res.status(404).json({ error: 'No products found' });
+      return res.status(404).json({ error: 'No products found for given filter(s)' });
     }
 
     return res.json({ count: products.length, products });
@@ -77,5 +83,6 @@ router.get('/', async (req, res) => {
     res.status(500).json({ error: 'Server error: ' + err.message });
   }
 });
+
 
 module.exports = router;
