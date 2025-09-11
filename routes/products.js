@@ -61,24 +61,14 @@ router.get('/', async (req, res) => {
     const { lotId, productId } = req.query;
 
     let filter = {};
-    if (lotId) {
-      filter.lotId = lotId;
-    }
-    if (productId) {
-      filter.productId = productId;
-    }
+    if (lotId) filter.lotId = lotId;
+    if (productId) filter.productId = productId;
 
-    if (Object.keys(filter).length === 0) {
-      return res
-        .status(400)
-        .json({ error: 'Please provide lotId or productId in query' });
-    }
-
+    // ✅ If no filter is given, fetch everything
     const products = await Product.find(filter).lean();
+
     if (!products || products.length === 0) {
-      return res
-        .status(404)
-        .json({ error: 'No products found for given filter' });
+      return res.status(404).json({ error: 'No products found' });
     }
 
     return res.json({ count: products.length, products });
