@@ -27,6 +27,7 @@ router.post('/receive', async (req, res) => {
       return res.status(400).json({ error: 'No productIds provided and no products found for lotId' });
     }
 
+    // create UDM record with status = inventory
     const receiptId = 'REC_' + ulid();
     const udmDoc = new UdmStock({
       receiptId,
@@ -34,7 +35,7 @@ router.post('/receive', async (req, res) => {
       products: ids,
       inspector,
       notes,
-      status: 'in_stock'
+      status: 'inventory'   // 🔥 changed from 'in_stock' → 'inventory'
     });
     await udmDoc.save();
 
@@ -43,14 +44,18 @@ router.post('/receive', async (req, res) => {
       updateOne: {
         filter: { productId: pid },
         update: {
-          $set: { currentStatus: 'in_stock', udmRecordId: udmDoc._id, updatedAt: new Date() }
+          $set: { 
+            currentStatus: 'in_stock',   // 🔥 products are in_stock
+            udmRecordId: udmDoc._id,
+            updatedAt: new Date()
+          }
         }
       }
     }));
 
     const bulkResult = await Product.bulkWrite(bulkOps, { ordered: false });
 
-    // insert per-product events (audit)
+    // insert per-product events (audit trail)
     const events = ids.map(pid => ({
       eventType: 'receive',
       productId: pid,
@@ -60,7 +65,11 @@ router.post('/receive', async (req, res) => {
     }));
     await Event.insertMany(events);
 
-    const modifiedCount = bulkResult.modifiedCount ?? bulkResult.nModified ?? (bulkResult.result && bulkResult.result.nModified) ?? 0;
+    const modifiedCount =
+      bulkResult.modifiedCount ??
+      bulkResult.nModified ??
+      (bulkResult.result && bulkResult.result.nModified) ??
+      0;
 
     return res.json({
       ok: true,
