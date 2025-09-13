@@ -73,17 +73,34 @@ router.get("/", async (req, res) => {
     if (status) filter.currentStatus = status;
     if (manufacturerId) filter.manufacturerId = manufacturerId;
 
-    // ✅ Populate both UDM + TMS in one query
+    // ✅ Fetch products with UDM + TMS populated
     const products = await Product.find(filter)
-      .populate("udmRecordId")   // full UDM depot doc
-      .populate("tmsRecordId")   // full TMS record doc
+      .populate("udmRecordId")
+      .populate("tmsRecordId")
       .lean();
 
     if (!products || products.length === 0) {
       return res.status(404).json({ error: "No products found for given filter(s)" });
     }
 
-    return res.json({ count: products.length, products });
+    // ✅ Attach latest inspection for each product
+    const productsWithInspection = await Promise.all(
+      products.map(async (p) => {
+        const latestInspection = await Inspection.findOne({ productId: p.productId })
+          .sort({ date: -1 }) // latest by date
+          .lean();
+
+        return {
+          ...p,
+          latestInspection: latestInspection || null,
+        };
+      })
+    );
+
+    return res.json({
+      count: productsWithInspection.length,
+      products: productsWithInspection,
+    });
   } catch (err) {
     console.error("Error fetching products", err);
     res.status(500).json({ error: "Server error: " + err.message });
