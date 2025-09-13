@@ -1,4 +1,4 @@
-/*const express = require("express");
+const express = require("express");
 const router = express.Router();
 const Manufacturer = require("../models/Manufacturer");
 const Lot = require("../models/Lot");
@@ -96,110 +96,6 @@ router.post("/lots", async (req, res) => {
   }
 });
 
-module.exports = router;
-*/
-
-// routes/manufacturer.js
-const express = require('express');
-const router = express.Router();
-const Manufacturer = require('../models/Manufacturer');
-// routes/manufacturer.js
-const Lot = require('../models/Lot');
-const Product = require('../models/Product');
-const QRCode = require('qrcode');
-
-
-
-const { ulid } = require('ulid');
-
-
-// ✅ Create a manufacturer
-router.post('/', async (req, res) => {
-  try {
-    const { manufacturerId, name, contact, publicKey } = req.body;
-
-    // validation
-    if (!manufacturerId || !name) {
-      return res.status(400).json({ error: "manufacturerId and name are required" });
-    }
-
-    // check duplicate
-    const existing = await Manufacturer.findOne({ manufacturerId });
-    if (existing) {
-      return res.status(400).json({ error: "Manufacturer already exists" });
-    }
-
-    const manufacturer = new Manufacturer({
-      manufacturerId,
-      name,
-      contact,
-      publicKey
-    });
-
-    await manufacturer.save();
-
-    res.status(201).json({ message: "Manufacturer created successfully", manufacturer });
-  } catch (err) {
-    console.error("Error creating manufacturer", err);
-    res.status(500).json({ error: "Server error: " + err.message });
-  }
-});
-
-
-// ✅ Create a product lot
-router.post('/lots', async (req, res) => {
-  try {
-    const { manufacturerId, productType, quantity, warrantyMonths } = req.body;
-
-    if (!manufacturerId || !productType || !quantity) {
-      return res.status(400).json({ error: "manufacturerId, productType, and quantity are required" });
-    }
-
-    // Generate unique lotId
-    const lotId = `LOT_${Date.now()}_${manufacturerId}_${Math.floor(Math.random() * 10000)}`;
-
-    // Create Lot document
-    const lot = new Lot({
-      lotId,
-      manufacturerId,
-      createdAt: new Date()
-    });
-    await lot.save();
-
-    // Create Products inside this lot
-    const products = [];
-    for (let i = 0; i < quantity; i++) {
-      const productId = `PROD_${manufacturerId}_${ulid()}`;
-      const qrData = `http://localhost:5000/api/products/${productId}`;
-      const qrUrl = await QRCode.toDataURL(qrData);
-
-      const product = new Product({
-        productId,
-        lotId,
-        manufacturerId,
-        productType,
-        manufactureDate: new Date(),
-        warrantyMonths,
-        currentStatus: "manufactured",
-        qrUrl
-      });
-      await product.save();
-      products.push(product);
-    }
-
-    res.status(201).json({
-      message: "Lot created successfully",
-      lot,
-      products
-    });
-  } catch (err) {
-    console.error("Error creating product lot", err);
-    res.status(500).json({ error: "Server error: " + err.message });
-  }
-});
-
-
-// ✅ Get all lots for a manufacturer with QR codes
 router.get('/:manufacturerId/lots', async (req, res) => {
   try {
     const { manufacturerId } = req.params;
@@ -254,4 +150,5 @@ router.get('/:manufacturerId/lots', async (req, res) => {
 });
 
 module.exports = router;
+
 
