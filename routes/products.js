@@ -29,8 +29,8 @@ router.get('/:productId', async (req, res) => {
       : null;
 
     // 3. TMS installation
-    const tms = product.tmsRecordId
-      ? await TmsInstall.findById(product.tmsRecordId).lean()
+    const tms = product.TmsInstallId
+      ? await TmsInstall.findById(product.TmsInstallId).lean()
       : await TmsInstall.findOne({ productId }).lean(); // fallback
 
     // 4. Inspection history
@@ -61,28 +61,33 @@ router.get('/:productId', async (req, res) => {
  * Filters: lotId, productId, status, manufacturerId
  * If no filters provided, returns ALL products
  */
-router.get('/', async (req, res) => {
+
+// ✅ Get all products with optional filters + UDM & TMS details
+router.get("/", async (req, res) => {
   try {
     const { lotId, productId, status, manufacturerId } = req.query;
 
     let filter = {};
     if (lotId) filter.lotId = lotId;
     if (productId) filter.productId = productId;
-    if (status) filter.currentStatus = status;   // ✅ filter by status
-    if (manufacturerId) filter.manufacturerId = manufacturerId; // ✅ filter by manufacturer
+    if (status) filter.currentStatus = status;
+    if (manufacturerId) filter.manufacturerId = manufacturerId;
 
-    const products = await Product.find(filter).lean();
+    // ✅ Populate both UDM + TMS in one query
+    const products = await Product.find(filter)
+      .populate("udmRecordId")   // full UDM depot doc
+      .populate("tmsRecordId")   // full TMS record doc
+      .lean();
 
     if (!products || products.length === 0) {
-      return res.status(404).json({ error: 'No products found for given filter(s)' });
+      return res.status(404).json({ error: "No products found for given filter(s)" });
     }
 
     return res.json({ count: products.length, products });
   } catch (err) {
-    console.error('Error fetching products', err);
-    res.status(500).json({ error: 'Server error: ' + err.message });
+    console.error("Error fetching products", err);
+    res.status(500).json({ error: "Server error: " + err.message });
   }
 });
-
 
 module.exports = router;
