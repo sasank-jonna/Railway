@@ -13,8 +13,16 @@ const TmsInstallSchema = new mongoose.Schema({
   },
 
   installedBy: String,
+ 
   installedDate: { type: Date, default: Date.now },
-  status: { type: String, default: 'installed' },
+ // models/TmsInstall.js (snippet)
+status: {
+  type: String,
+  enum: ['installed','in_condition','failure','retired'],
+  default: 'installed'
+},
+updatedAt: { type: Date, default: Date.now },
+
   additionalNotes: String
 });
 
