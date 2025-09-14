@@ -11,7 +11,7 @@ const UdmStockSchema = new mongoose.Schema({
   // models/UdmStock.js (snippet)
 status: {
   type: String,
-  enum: ['in_depot','reserved','dispatched','in_condition','failure'],
+  enum: ['in_stock','out_of_stock','in_depot','reserved','dispatched','in_condition','failure'],
   default: 'in_depot'
 },
 updatedAt: { type: Date, default: Date.now },
